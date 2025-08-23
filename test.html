@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>FloatXX 测试</title>
+</head>
+
+<body>
+    <h1>FloatXX 类测试</h1>
+    <div id="output"></div>
+
+    <script src="./floatxx.js"></script>
+    <script>
+        const output = document.getElementById('output');
+
+        function log(message) {
+            output.innerHTML += '<p>' + message + '</p>';
+        }
+
+        try {
+            // 测试基本类型
+            log('=== 测试基本类型 ===');
+
+            const fp16 = FloatTypes.fp16();
+            log('fp16: ' + fp16.totalBits + '位 (' + fp16.signBits + 's' + fp16.exponentBits + 'e' + (fp16.totalBits - fp16.signBits - fp16.exponentBits) + 'm)');
+
+            const bf16 = FloatTypes.bf16();
+            log('bf16: ' + bf16.totalBits + '位 (' + bf16.signBits + 's' + bf16.exponentBits + 'e' + (bf16.totalBits - bf16.signBits - bf16.exponentBits) + 'm)');
+
+            const tf32 = FloatTypes.tf32();
+            log('tf32: ' + tf32.totalBits + '位 (' + tf32.signBits + 's' + tf32.exponentBits + 'e' + (tf32.totalBits - tf32.signBits - tf32.exponentBits) + 'm)');
+
+            // 测试数值转换
+            log('=== 测试数值转换 ===');
+
+            const testValue = 3.14159;
+            fp16.setBits(fp16.fromNumber(testValue));
+            log('fp16: ' + testValue + ' → ' + fp16.toNumber() + ' (hex: ' + fp16.toHex() + ')');
+
+            bf16.setBits(bf16.fromNumber(testValue));
+            log('bf16: ' + testValue + ' → ' + bf16.toNumber() + ' (hex: ' + bf16.toHex() + ')');
+
+            // 测试自定义类型
+            log('=== 测试自定义类型 ===');
+
+            const custom = FloatTypes.custom(1, 4, 3); // 8位浮点
+            log('custom: ' + custom.totalBits + '位 (' + custom.signBits + 's' + custom.exponentBits + 'e' + (custom.totalBits - custom.signBits - custom.exponentBits) + 'm)');
+
+            custom.setBits(custom.fromNumber(2.5));
+            log('custom: 2.5 → ' + custom.toNumber() + ' (hex: ' + custom.toHex() + ')');
+
+            // 测试位字段
+            log('=== 测试位字段 ===');
+
+            const fields = custom.getBitFields();
+            log('位字段: 符号=' + fields.sign + ', 指数=' + fields.actualExponent + ', 尾数=' + fields.mantissa);
+
+            log('=== 测试完成 ===');
+
+        } catch (error) {
+            log('错误: ' + error.message);
+            console.error(error);
+        }
+    </script>
+</body>
+
+</html>

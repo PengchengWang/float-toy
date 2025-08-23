@@ -200,8 +200,100 @@
       <td class="hex-col"><input id="output64" class="output"></td>
     </tr>
   </table>
+
+  <h2>Brain Float 16 (bf16)</h2>
+  <table>
+    <tr>
+      <td><span id="inputbf16" class="input"></span></td>
+      <td class="zerox-col"><span class="zerox">&nbsp;&nbsp;=&nbsp;&nbsp;0x</span></td>
+      <td class="output-col"><input id="hexbf16" class="output"></td>
+    </tr>
+  </table>
+  <table>
+    <tr>
+      <td><span id="helpbf16" class="help"></span></td>
+      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+      <td class="hex-col"><input id="outputbf16" class="output"></td>
+    </tr>
+  </table>
+
+  <h2>Tensor Float 32 (tf32)</h2>
+  <table>
+    <tr>
+      <td><span id="inputtf32" class="input"></span></td>
+      <td class="zerox-col"><span class="zerox">&nbsp;&nbsp;=&nbsp;&nbsp;0x</span></td>
+      <td class="output-col"><input id="hextf32" class="output"></td>
+    </tr>
+  </table>
+  <table>
+    <tr>
+      <td><span id="helptf32" class="help"></span></td>
+      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+      <td class="hex-col"><input id="outputtf32" class="output"></td>
+    </tr>
+  </table>
+
+  <h2>12-bit Float (fp12)</h2>
+  <table>
+    <tr>
+      <td><span id="inputfp12" class="input"></span></td>
+      <td class="zerox-col"><span class="zerox">&nbsp;&nbsp;=&nbsp;&nbsp;0x</span></td>
+      <td class="output-col"><input id="hexfp12" class="output"></td>
+    </tr>
+  </table>
+  <table>
+    <tr>
+      <td><span id="helpfp12" class="help"></span></td>
+      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+      <td class="hex-col"><input id="outputfp12" class="output"></td>
+    </tr>
+  </table>
+
+  <h2>32-bit Integer (int32)</h2>
+  <table>
+    <tr>
+      <td><span id="inputint32" class="input"></span></td>
+      <td class="zerox-col"><span class="zerox">&nbsp;&nbsp;=&nbsp;&nbsp;0x</span></td>
+      <td class="output-col"><input id="hexint32" class="output"></td>
+    </tr>
+  </table>
+  <table>
+    <tr>
+      <td><span id="helpint32" class="help"></span></td>
+      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+      <td class="hex-col"><input id="outputint32" class="output"></td>
+    </tr>
+  </table>
+
+  <h2>自定义浮点类型</h2>
+  <div style="margin: 20px 0; padding: 20px; border: 1px solid #ccc; border-radius: 5px;">
+    <label>符号位: <input type="number" id="customSignBits" value="1" min="0" max="8" style="width: 50px;"></label>
+    <label style="margin-left: 20px;">指数位: <input type="number" id="customExponentBits" value="4" min="0" max="16"
+        style="width: 50px;"></label>
+    <label style="margin-left: 20px;">尾数位: <input type="number" id="customMantissaBits" value="7" min="0" max="32"
+        style="width: 50px;"></label>
+    <button onclick="createCustomType()" style="margin-left: 20px; padding: 5px 10px;">创建类型</button>
+  </div>
+  <div id="customTypeContainer" style="display: none;">
+    <h3 id="customTypeTitle"></h3>
+    <table>
+      <tr>
+        <td><span id="inputCustom" class="input"></span></td>
+        <td class="zerox-col"><span class="zerox">&nbsp;&nbsp;=&nbsp;&nbsp;0x</span></td>
+        <td class="output-col"><input id="hexCustom" class="output"></td>
+      </tr>
+    </table>
+    <table>
+      <tr>
+        <td><span id="helpCustom" class="help"></span></td>
+        <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+        <td class="hex-col"><input id="outputCustom" class="output"></td>
+      </tr>
+    </table>
+  </div>
 </body>
 <script src="./float16.js"></script>
+<script src="./floatxx.js"></script>
 <script>
   const { Float16Array } = float16;
 
@@ -478,6 +570,188 @@
     load(new Float32Array([Math.PI]), 8, document.getElementById('input32'), document.getElementById('output32'), document.getElementById('help32'), document.getElementById('hex32'));
     load(new Float64Array([Math.PI]), 11, document.getElementById('input64'), document.getElementById('output64'), document.getElementById('help64'), document.getElementById('hex64'));
 
+    // 加载新的浮点数类型
+    loadFloatXX(FloatTypes.bf16(), document.getElementById('inputbf16'), document.getElementById('outputbf16'), document.getElementById('helpbf16'), document.getElementById('hexbf16'));
+    loadFloatXX(FloatTypes.tf32(), document.getElementById('inputtf32'), document.getElementById('outputtf32'), document.getElementById('helptf32'), document.getElementById('hextf32'));
+    loadFloatXX(FloatTypes.fp12(), document.getElementById('inputfp12'), document.getElementById('outputfp12'), document.getElementById('helpfp12'), document.getElementById('hexfp12'));
+    loadFloatXX(FloatTypes.int32(), document.getElementById('inputint32'), document.getElementById('outputint32'), document.getElementById('helpint32'), document.getElementById('hexint32'));
+
   })();
+
+  // 通用的 FloatXX 加载函数
+  function loadFloatXX(floatType, input, output, help, hex) {
+    const totalBits = floatType.totalBits;
+    const exponentBits = floatType.exponentBits;
+
+    // 设置初始值
+    floatType.setBits(floatType.fromNumber(Math.PI));
+
+    // 创建位显示
+    function createBitDisplay() {
+      let html = '<table>';
+
+      // 位编号
+      html += '<tr>';
+      for (let i = 0; i < totalBits; i++) {
+        const className = i === 0 ? 'nibble' : 'dark nibble';
+        html += `<td class="${className}">${totalBits - i - 1}</td>`;
+      }
+      html += '</tr>';
+
+      // 位值
+      html += '<tr>';
+      for (let i = 0; i < totalBits; i++) {
+        const className = i === 0 ? 'sign' :
+          i < 1 + exponentBits ? 'exponent' : 'fraction';
+        html += `<td data-index="${i}" class="${className}">0</td>`;
+      }
+      html += '</tr></table>';
+
+      input.innerHTML = html;
+    }
+
+    createBitDisplay();
+
+    // 获取位元素
+    const elements = [];
+    for (let i = 0; i < totalBits; i++) {
+      const element = input.querySelector(`[data-index="${i}"]`);
+      element.onmouseover = function () { this.classList.add('hover'); };
+      element.onmouseout = function () { this.classList.remove('hover'); };
+      elements.push(element);
+    }
+
+    // 事件处理函数
+    function extractNumber() {
+      return +(output.value.replace(/\b(?:infinity|inf)\b/gi, 'Infinity'));
+    }
+
+    output.onkeydown = function (e) {
+      if (e.which === 13) {
+        e.preventDefault();
+        output.blur();
+      } else if (e.which === 38) {
+        e.preventDefault();
+        output.value = extractNumber() + 1;
+        output.select();
+        output.oninput();
+      } else if (e.which === 40) {
+        e.preventDefault();
+        output.value = extractNumber() - 1;
+        output.select();
+        output.oninput();
+      }
+    };
+
+    output.onfocus = function () {
+      output.select();
+    };
+
+    output.oninput = function () {
+      try {
+        floatType.setBits(floatType.fromNumber(extractNumber()));
+        render();
+      } catch (error) {
+        // 处理错误值
+      }
+    };
+
+    output.onblur = function () {
+      render();
+    };
+
+    hex.onkeydown = function (e) {
+      if (e.which === 13) {
+        e.preventDefault();
+        hex.blur();
+      }
+    };
+
+    hex.onfocus = function () {
+      hex.select();
+    };
+
+    hex.oninput = function () {
+      try {
+        floatType.fromHex(hex.value);
+        render();
+      } catch (error) {
+        // 处理错误值
+      }
+    };
+
+    hex.onblur = function () {
+      render();
+    };
+
+    // 位点击事件
+    input.onmousedown = function (e) {
+      if ('index' in e.target.dataset) {
+        const index = parseInt(e.target.dataset.index);
+        const bits = floatType.getBits();
+        const mask = 1 << (totalBits - 1 - index);
+        const newBits = bits ^ mask;
+        floatType.setBits(newBits);
+        render();
+
+        let mouseDownValue = (newBits & mask) ? 1 : 0;
+
+        document.onmousemove = function (e2) {
+          if ('index' in e2.target.dataset) {
+            const index2 = parseInt(e2.target.dataset.index);
+            const bits2 = floatType.getBits();
+            const mask2 = 1 << (totalBits - 1 - index2);
+            const newBits2 = (bits2 & ~mask2) | (mask2 * mouseDownValue);
+            floatType.setBits(newBits2);
+            render();
+          }
+        };
+
+        document.onmouseup = function () {
+          document.onmousemove = null;
+          document.onmouseup = null;
+        };
+      }
+    };
+
+    // 渲染函数
+    function render() {
+      const bits = floatType.getBits();
+
+      // 更新位显示
+      for (let i = 0; i < totalBits; i++) {
+        const bitValue = (bits >> (totalBits - 1 - i)) & 1;
+        elements[i].textContent = bitValue;
+      }
+
+      // 获取字段信息
+      const fields = floatType.getBitFields();
+
+      // 更新帮助信息
+      let helpText = '';
+      if (fields.exponentBits === 0) {
+        // 整数类型
+        helpText = `<span class="sign">${fields.sign ? -1 : 1}</span>&nbsp;&nbsp;×&nbsp;&nbsp;<span class="fraction">${Math.abs(floatType.toNumber())}</span>`;
+      } else {
+        // 浮点类型
+        helpText = `<span class="sign">${fields.sign ? -1 : 1}</span>&nbsp;&nbsp;×&nbsp;&nbsp;<span class="exponent">2<sup>${fields.actualExponent}</sup></span>&nbsp;&nbsp;×&nbsp;&nbsp;<span class="fraction">${fields.mantissa + 1}</span>`;
+      }
+      help.innerHTML = helpText;
+
+      // 更新输出值
+      if (document.activeElement !== output) {
+        output.value = floatType.toNumber();
+      }
+
+      // 更新十六进制
+      if (document.activeElement !== hex) {
+        hex.value = floatType.toHex();
+      }
+    }
+
+    render();
+  }
+
+
 
 </script>

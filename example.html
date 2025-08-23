@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>FloatXX 使用示例</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .example {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .code {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        .output {
+            background: #e8f4f8;
+            padding: 10px;
+            border-radius: 3px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>FloatXX 使用示例</h1>
+
+    <div class="example">
+        <h3>1. 创建预定义类型</h3>
+        <div class="code">
+            const bf16 = FloatTypes.bf16(); // Brain Float 16
+            const tf32 = FloatTypes.tf32(); // Tensor Float 32
+        </div>
+        <div id="output1" class="output"></div>
+    </div>
+
+    <div class="example">
+        <h3>2. 创建自定义类型</h3>
+        <div class="code">
+            const custom = FloatTypes.custom(1, 4, 7); // 1符号位 + 4指数位 + 7尾数位
+        </div>
+        <div id="output2" class="output"></div>
+    </div>
+
+    <div class="example">
+        <h3>3. 数值转换</h3>
+        <div class="code">
+            const value = 3.14159;
+            const bits = custom.fromNumber(value);
+            const result = custom.toNumber();
+        </div>
+        <div id="output3" class="output"></div>
+    </div>
+
+    <div class="example">
+        <h3>4. 十六进制操作</h3>
+        <div class="code">
+            const hex = custom.toHex();
+            custom.fromHex("4048");
+        </div>
+        <div id="output4" class="output"></div>
+    </div>
+
+    <div class="example">
+        <h3>5. 位字段分析</h3>
+        <div class="code">
+            const fields = custom.getBitFields();
+            console.log(fields);
+        </div>
+        <div id="output5" class="output"></div>
+    </div>
+
+    <div class="example">
+        <h3>6. 创建整数类型</h3>
+        <div class="code">
+            const int16 = FloatTypes.custom(1, 0, 15); // 16位整数
+        </div>
+        <div id="output6" class="output"></div>
+    </div>
+
+    <script src="./floatxx.js"></script>
+    <script>
+        function displayOutput(id, content) {
+            document.getElementById(id).innerHTML = content;
+        }
+
+        try {
+            // 示例1: 预定义类型
+            const bf16 = FloatTypes.bf16();
+            const tf32 = FloatTypes.tf32();
+
+            displayOutput('output1',
+                `bf16: ${bf16.totalBits}位 (${bf16.signBits}s${bf16.exponentBits}e${bf16.totalBits - bf16.signBits - bf16.exponentBits}m)<br>` +
+                `tf32: ${tf32.totalBits}位 (${tf32.signBits}s${tf32.exponentBits}e${tf32.totalBits - tf32.signBits - tf32.exponentBits}m)`
+            );
+
+            // 示例2: 自定义类型
+            const custom = FloatTypes.custom(1, 4, 7);
+            displayOutput('output2',
+                `自定义类型: ${custom.totalBits}位 (${custom.signBits}s${custom.exponentBits}e${custom.totalBits - custom.signBits - custom.exponentBits}m)`
+            );
+
+            // 示例3: 数值转换
+            const value = 3.14159;
+            custom.setBits(custom.fromNumber(value));
+            const result = custom.toNumber();
+
+            displayOutput('output3',
+                `输入: ${value}<br>` +
+                `输出: ${result}<br>` +
+                `精度损失: ${Math.abs(value - result)}`
+            );
+
+            // 示例4: 十六进制
+            const hex = custom.toHex();
+            displayOutput('output4',
+                `十六进制: ${hex}<br>` +
+                `二进制: ${custom.toBinary()}`
+            );
+
+            // 示例5: 位字段
+            const fields = custom.getBitFields();
+            displayOutput('output5',
+                `符号: ${fields.sign ? '负' : '正'}<br>` +
+                `指数: ${fields.actualExponent}<br>` +
+                `尾数: ${fields.mantissa + 1}`
+            );
+
+            // 示例6: 整数类型
+            const int16 = FloatTypes.custom(1, 0, 15);
+            int16.setBits(int16.fromNumber(12345));
+            displayOutput('output6',
+                `16位整数: ${int16.totalBits}位 (${int16.signBits}s${int16.exponentBits}e${int16.totalBits - int16.signBits - int16.exponentBits}m)<br>` +
+                `值: ${int16.toNumber()}<br>` +
+                `十六进制: ${int16.toHex()}`
+            );
+
+        } catch (error) {
+            console.error('错误:', error);
+            document.body.innerHTML += '<p style="color: red;">错误: ' + error.message + '</p>';
+        }
+    </script>
+</body>
+
+</html>

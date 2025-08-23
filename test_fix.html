@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>修复测试</title>
+</head>
+
+<body>
+    <h1>FloatXX 修复测试</h1>
+    <div id="output"></div>
+
+    <script src="./floatxx.js"></script>
+    <script>
+        const output = document.getElementById('output');
+
+        function log(message) {
+            output.innerHTML += '<p>' + message + '</p>';
+        }
+
+        try {
+            // 测试 bf16 的十六进制
+            log('=== 测试 bf16 十六进制 ===');
+
+            const bf16 = FloatTypes.bf16();
+            bf16.setBits(bf16.fromNumber(1.0));
+
+            log('bf16 1.0 的十六进制: ' + bf16.toHex());
+            log('bf16 1.0 的二进制: ' + bf16.toBinary());
+            log('bf16 1.0 的数值: ' + bf16.toNumber());
+
+            // 测试从十六进制设置
+            log('=== 测试从十六进制设置 ===');
+
+            bf16.fromHex('3F80');
+            log('从 0x3F80 设置的数值: ' + bf16.toNumber());
+            log('从 0x3F80 设置的十六进制: ' + bf16.toHex());
+
+            // 测试其他类型
+            log('=== 测试其他类型 ===');
+
+            const tf32 = FloatTypes.tf32();
+            tf32.setBits(tf32.fromNumber(3.14159));
+            log('tf32 3.14159 的十六进制: ' + tf32.toHex());
+            log('tf32 3.14159 的数值: ' + tf32.toNumber());
+
+            const fp12 = FloatTypes.fp12();
+            fp12.setBits(fp12.fromNumber(2.5));
+            log('fp12 2.5 的十六进制: ' + fp12.toHex());
+            log('fp12 2.5 的数值: ' + fp12.toNumber());
+
+            const int32 = FloatTypes.int32();
+            int32.setBits(int32.fromNumber(12345));
+            log('int32 12345 的十六进制: ' + int32.toHex());
+            log('int32 12345 的数值: ' + int32.toNumber());
+
+            log('=== 测试完成 ===');
+
+        } catch (error) {
+            log('错误: ' + error.message);
+            console.error(error);
+        }
+    </script>
+</body>
+
+</html>
