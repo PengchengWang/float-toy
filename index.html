@@ -265,6 +265,19 @@
     </tr>
   </table>
 
+  <h2>调试控制</h2>
+  <div style="margin: 20px 0; padding: 20px; border: 1px solid #ccc; border-radius: 5px;">
+    <label>启用调试: <input type="checkbox" id="debugEnabled" onchange="toggleDebug()"></label>
+    <label style="margin-left: 20px;">调试级别:
+      <select id="debugLevel" onchange="setDebugLevel()">
+        <option value="1">1 - 基本信息</option>
+        <option value="2">2 - 详细信息</option>
+        <option value="3">3 - 完整调试</option>
+      </select>
+    </label>
+    <button onclick="clearConsole()" style="margin-left: 20px; padding: 5px 10px;">清空控制台</button>
+  </div>
+
   <h2>自定义浮点类型</h2>
   <div style="margin: 20px 0; padding: 20px; border: 1px solid #ccc; border-radius: 5px;">
     <label>符号位: <input type="number" id="customSignBits" value="1" min="0" max="8" style="width: 50px;"></label>
@@ -578,10 +591,56 @@
 
   })();
 
+  // 调试控制函数
+  function toggleDebug() {
+    const enabled = document.getElementById('debugEnabled').checked;
+    const level = parseInt(document.getElementById('debugLevel').value);
+
+    // 为所有已创建的FloatXX实例设置调试
+    if (window.floatInstances) {
+      window.floatInstances.forEach(instance => {
+        if (instance && instance.setDebug) {
+          instance.setDebug(enabled, level);
+        }
+      });
+    }
+
+    console.log(`调试${enabled ? '启用' : '禁用'}, 级别: ${level}`);
+  }
+
+  function setDebugLevel() {
+    const enabled = document.getElementById('debugEnabled').checked;
+    const level = parseInt(document.getElementById('debugLevel').value);
+
+    if (enabled && window.floatInstances) {
+      window.floatInstances.forEach(instance => {
+        if (instance && instance.setDebug) {
+          instance.setDebug(true, level);
+        }
+      });
+    }
+  }
+
+  function clearConsole() {
+    console.clear();
+    console.log('控制台已清空');
+  }
+
+  // 存储FloatXX实例的全局数组
+  window.floatInstances = [];
+
   // 通用的 FloatXX 加载函数
   function loadFloatXX(floatType, input, output, help, hex) {
     const totalBits = floatType.totalBits;
     const exponentBits = floatType.exponentBits;
+
+    // 确保全局数组存在
+    if (!window.floatInstances) {
+      window.floatInstances = [];
+    }
+
+    // 将实例添加到全局数组
+    window.floatInstances.push(floatType);
 
     // 设置初始值
     floatType.setBits(floatType.fromNumber(Math.PI));
@@ -590,11 +649,12 @@
     function createBitDisplay() {
       let html = '<table>';
 
-      // 位编号
+      // 位编号 - 每4位变颜色
       html += '<tr>';
       for (let i = 0; i < totalBits; i++) {
-        const className = i === 0 ? 'nibble' : 'dark nibble';
-        html += `<td class="${className}">${totalBits - i - 1}</td>`;
+        const bitIndex = totalBits - i - 1;
+        const className = (bitIndex % 8 >= 4) ? 'nibble' : 'dark nibble';
+        html += `<td class="${className}">${bitIndex}</td>`;
       }
       html += '</tr>';
 

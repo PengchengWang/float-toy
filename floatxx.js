@@ -10,13 +10,27 @@ class FloatXX {
     this.mantissaBits = mantissaBits;
     this.totalBits = totalBits || (signBits + exponentBits + mantissaBits);
 
+    // 调试配置
+    this.debug = {
+      enabled: false,
+      level: 1, // 1: 基本信息, 2: 详细信息, 3: 完整调试
+      log: function (message, level = 1) {
+        if (this.enabled && level <= this.level) {
+          console.log(`[FloatXX Debug] ${message}`);
+        }
+      }.bind(this)
+    };
+
     // 验证参数
     if (this.totalBits !== signBits + exponentBits + mantissaBits) {
       throw new Error('总位数必须等于符号位+指数位+尾数位');
     }
 
+    this.debug.log(`创建FloatXX: ${signBits}s + ${exponentBits}e + ${mantissaBits}m = ${this.totalBits}位`, 1);
+
     // 计算指数偏置
     this.exponentBias = (1 << (exponentBits - 1)) - 1;
+    this.debug.log(`指数偏置: ${this.exponentBias}`, 2);
 
     // 创建对应的 TypedArray
     this.byteLength = Math.ceil(this.totalBits / 8);
@@ -34,31 +48,53 @@ class FloatXX {
     } else {
       throw new Error('不支持超过64位的浮点数类型');
     }
+
+    this.debug.log(`使用TypedArray: ${this.uintArray.constructor.name}, 字节长度: ${this.byteLength}`, 2);
+
+    // 对于非8的倍数的总位数，需要特殊处理
+    if (this.totalBits % 8 !== 0) {
+      this.debug.log(`警告: 总位数${this.totalBits}不是8的倍数，可能影响字节操作`, 1);
+    }
+  }
+
+  /**
+   * 启用/禁用调试
+   */
+  setDebug(enabled, level = 1) {
+    this.debug.enabled = enabled;
+    this.debug.level = level;
+    this.debug.log(`调试${enabled ? '启用' : '禁用'}, 级别: ${level}`, 1);
   }
 
   /**
    * 从数值转换为位表示
    */
   fromNumber(value) {
+    this.debug.log(`fromNumber: 输入值 ${value}`, 2);
+
     if (!Number.isFinite(value) && !Number.isNaN(value)) {
       throw new Error('不支持的值类型');
     }
 
     // 处理特殊值
     if (Number.isNaN(value)) {
+      this.debug.log('fromNumber: 创建NaN', 2);
       return this.createNaN();
     }
 
     if (value === Infinity) {
+      this.debug.log('fromNumber: 创建正无穷', 2);
       return this.createInfinity(false);
     }
 
     if (value === -Infinity) {
+      this.debug.log('fromNumber: 创建负无穷', 2);
       return this.createInfinity(true);
     }
 
     // 处理零
     if (value === 0) {
+      this.debug.log('fromNumber: 创建零', 2);
       return this.createZero(value < 0);
     }
 
@@ -71,28 +107,36 @@ class FloatXX {
     let exponent = Math.floor(log2);
     let mantissa = absValue / Math.pow(2, exponent);
 
+    this.debug.log(`fromNumber: log2=${log2}, 初始指数=${exponent}, 初始尾数=${mantissa}`, 3);
+
     // 调整到标准范围 [1, 2)
     if (mantissa >= 2) {
       mantissa /= 2;
       exponent += 1;
+      this.debug.log(`fromNumber: 调整后指数=${exponent}, 尾数=${mantissa}`, 3);
     }
 
     // 应用指数偏置
     const biasedExponent = exponent + this.exponentBias;
+    this.debug.log(`fromNumber: 偏置指数=${biasedExponent}`, 3);
 
     // 检查指数范围
     if (biasedExponent < 0) {
       // 下溢，转换为非规格化数
+      this.debug.log(`fromNumber: 指数下溢，创建非规格化数`, 2);
       return this.createDenormal(sign, mantissa * Math.pow(2, exponent));
     }
 
     if (biasedExponent >= (1 << this.exponentBits)) {
       // 上溢，转换为无穷大
+      this.debug.log(`fromNumber: 指数上溢，创建无穷大`, 2);
       return this.createInfinity(sign);
     }
 
     // 构建位表示
-    return this.buildBits(sign, biasedExponent, mantissa - 1);
+    const result = this.buildBits(sign, biasedExponent, mantissa - 1);
+    this.debug.log(`fromNumber: 构建位表示 ${result.toString(2)}`, 3);
+    return result;
   }
 
   /**
@@ -182,20 +226,26 @@ class FloatXX {
   buildBits(sign, biasedExponent, mantissa) {
     let bits = 0;
 
+    this.debug.log(`buildBits: 符号=${sign}, 偏置指数=${biasedExponent}, 尾数=${mantissa}`, 3);
+
     // 符号位
     if (sign) {
       bits |= (1 << (this.totalBits - this.signBits));
+      this.debug.log(`buildBits: 设置符号位, 位置=${this.totalBits - this.signBits}`, 3);
     }
 
     // 指数位
     const exponentShift = this.totalBits - this.signBits - this.exponentBits;
     bits |= (biasedExponent << exponentShift);
+    this.debug.log(`buildBits: 设置指数位, 位置=${exponentShift}, 值=${biasedExponent}`, 3);
 
     // 尾数位
     const mantissaBits = this.totalBits - this.signBits - this.exponentBits;
     const mantissaValue = Math.round(mantissa * Math.pow(2, mantissaBits));
     bits |= mantissaValue;
+    this.debug.log(`buildBits: 设置尾数位, 位数=${mantissaBits}, 值=${mantissaValue}`, 3);
 
+    this.debug.log(`buildBits: 最终位表示 ${bits.toString(2)}`, 3);
     return bits;
   }
 
@@ -252,10 +302,10 @@ class FloatXX {
  */
   toHex() {
     const bytes = new Uint8Array(this.arrayBuffer);
-    // 修复字节顺序：从高位到低位，保持大端序
+    // 小端序：从低位到高位
     return Array.from(bytes, byte =>
       ('0' + byte.toString(16).toUpperCase()).slice(-2)
-    ).join('');
+    ).reverse().join('');
   }
 
   /**
@@ -275,9 +325,9 @@ class FloatXX {
       hexBytes.push(parseInt(hexString.substr(i, 2), 16));
     }
 
-    // 修复字节顺序：保持大端序，不反转
+    // 小端序：反转字节顺序
     bytes.fill(0);
-    bytes.set(hexBytes, 0);
+    bytes.set(hexBytes.reverse(), 0);
   }
 
   /**
@@ -323,7 +373,12 @@ const FloatTypes = {
 
   // 自定义类型
   bf16: () => new FloatXX(1, 8, 7, 16),  // Brain Float 16
-  tf32: () => new FloatXX(1, 8, 10, 19), // Tensor Float 32
+  tf32: () => {
+    const tf32 = new FloatXX(1, 8, 10, 19); // Tensor Float 32
+    // 启用tf32的调试，帮助排查问题
+    tf32.setDebug(true, 2);
+    return tf32;
+  },
   fp12: () => new FloatXX(1, 4, 7, 12),  // 12位浮点
 
   // 整数类型
